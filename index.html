@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Space Launch Tracker</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <h1>🚀 Space Launch Tracker</h1>
+    <p>Upcoming orbital launches • Data from Launch Library 2</p>
+    <div class="controls">
+      <input type="text" id="search" placeholder="Filter by mission, rocket, or provider...">
+      <button id="refresh">Refresh</button>
+    </div>
+    <p id="status" class="status">Loading...</p>
+  </header>
+  <main id="launches"></main>
+  <footer>
+    <p>Powered by <a href="https://thespacedevs.com/llapi" target="_blank">The Space Devs Launch Library 2</a></p>
+  </footer>
+  <script src="script.js"></script>
+</body>
+</html>
