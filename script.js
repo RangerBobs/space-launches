@@ -1,4 +1,5 @@
 const API_BASE = 'https://ll.thespacedevs.com/2.3.0/launches/upcoming/';
+const PROXY = 'https://corsproxy.io/?';
 const CACHE_KEY = 'spaceLaunchesCache';
 const CACHE_TTL = 30 * 60 * 1000; // 30 minutes
 
@@ -16,17 +17,20 @@ async function loadLaunches(force = false) {
   // Check cache
   const cached = localStorage.getItem(CACHE_KEY);
   if (!force && cached) {
-    const { timestamp, data } = JSON.parse(cached);
-    if (Date.now() - timestamp < CACHE_TTL) {
-      allLaunches = data;
-      render();
-      statusEl.textContent = `Showing cached data (refreshed ${new Date(timestamp).toLocaleTimeString()})`;
-      return;
-    }
+    try {
+      const { timestamp, data } = JSON.parse(cached);
+      if (Date.now() - timestamp < CACHE_TTL && Array.isArray(data)) {
+        allLaunches = data;
+        render();
+        statusEl.textContent = `Showing cached data (refreshed ${new Date(timestamp).toLocaleTimeString()})`;
+        return;
+      }
+    } catch (e) {}
   }
 
   try {
-    const url = `${API_BASE}?limit=30&mode=detailed`;
+    const target = `${API_BASE}?limit=30&mode=normal`;
+    const url = PROXY + encodeURIComponent(target);
     const res = await fetch(url);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const json = await res.json();
@@ -43,15 +47,17 @@ async function loadLaunches(force = false) {
     console.error(err);
     statusEl.textContent = 'Failed to load launches. Using cache if available.';
     if (cached) {
-      const { data } = JSON.parse(cached);
-      allLaunches = data;
-      render();
+      try {
+        const { data } = JSON.parse(cached);
+        allLaunches = data || [];
+        render();
+      } catch (e) {}
     }
   }
 }
 
 function formatTime(iso) {
-  if (!iso) return 'TBD';
+  if (!iso) return { utc: 'TBD', jst: 'TBD' };
   const d = new Date(iso);
   const utc = d.toLocaleString('en-GB', { timeZone: 'UTC', dateStyle: 'medium', timeStyle: 'short' }) + ' UTC';
   const jst = d.toLocaleString('en-GB', { timeZone: 'Asia/Tokyo', dateStyle: 'medium', timeStyle: 'short' }) + ' JST';
@@ -67,9 +73,9 @@ function getStatusClass(status) {
 }
 
 function render() {
-  const query = searchEl.value.toLowerCase();
+  const query = (searchEl.value || '').toLowerCase();
   const filtered = allLaunches.filter(l => {
-    const text = `${l.name} ${l.launch_service_provider?.name || ''} ${l.rocket?.configuration?.full_name || ''} ${l.mission?.name || ''}`.toLowerCase();
+    const text = `${l.name || ''} ${l.launch_service_provider?.name || ''} ${l.rocket?.configuration?.full_name || ''} ${l.mission?.name || ''}`.toLowerCase();
     return text.includes(query);
   });
 
@@ -85,11 +91,11 @@ function render() {
     const status = l.status?.name || 'Unknown';
     const statusClass = getStatusClass(l.status);
     const mission = l.mission?.name || '';
-    const watch = l.vid_urls?.length ? l.vid_urls[0].url : null;
+    const watch = l.vid_urls && l.vid_urls.length ? l.vid_urls[0].url : null;
 
     return `
       <article class="launch">
-        <h2>${l.name}</h2>
+        <h2>${l.name || 'Unknown Launch'}</h2>
         <div class="meta">
           <span>${provider}</span>
           <span>${rocket}</span>
